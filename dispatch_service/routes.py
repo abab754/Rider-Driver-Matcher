@@ -1,0 +1,93 @@
+from fastapi import APIRouter, Depends, HTTPException
+from dispatch_service.schemas import CreateDriver, DriverInfo, CreateRider, RiderInfo, TripRequest, TripResponse
+from sqlalchemy.orm import Session                                                                    
+from dispatch_service.database import get_db
+from dispatch_service.models import Driver, Rider, Trip
+
+router = APIRouter()
+
+
+## Create a Driver
+@router.post("/drivers")
+def create_driver(driver: CreateDriver, db: Session = Depends(get_db)):
+    ## Creates a sqlAlchemy Driver object with the pydantic driver's props
+    db_driver = Driver(name=driver.name, latitude=driver.latitude, longitude=driver.longitude)
+
+    ## Adds the db_driver to the database
+    db.add(db_driver)
+    db.commit()
+    ## Refreshes the driver and returns an id with it
+    db.refresh(db_driver)
+
+    ## Stores the refreshed driver's props to returning_driver and returns
+    return DriverInfo.model_validate(db_driver)
+
+## Create a Rider
+@router.post("/riders")
+def create_rider(rider: CreateRider, db: Session = Depends(get_db)):
+    db_rider = Rider(name=rider.name, latitude=rider.latitude, longitude=rider.longitude)
+
+    db.add(db_rider)
+    db.commit()
+    db.refresh(db_rider)
+
+    return RiderInfo.model_validate(db_rider)
+
+@router.post("/trips/request")
+def request_trip(tripRequest: TripRequest, db: Session = Depends(get_db)):
+    ## Query DB for rider with the requests rider_id
+    rider = db.query(Rider).filter(Rider.id == tripRequest.rider_id).first()
+    if not rider:
+        raise HTTPException(status_code=404, detail="Rider not found")
+    
+    db_trip = Trip(
+        rider_id=tripRequest.rider_id, 
+        status="REQUESTED", 
+        pickup_lat=rider.latitude, 
+        pickup_long=rider.longitude, 
+        dropoff_lat=tripRequest.dropoff_lat, 
+        dropoff_long=tripRequest.dropoff_long
+    )
+
+    db.add(db_trip)
+    db.commit()
+    db.refresh(db_trip)
+
+    return TripResponse.model_validate(db_trip)
+
+@router.post("/trips/{id}/confirm")
+def confirm_trip(id: int, db: Session = Depends(get_db)):
+    ## Get trip that we need to update
+    trip = db.query(Trip).filter(Trip.id == id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+    if trip.status != "REQUESTED":
+        raise HTTPException(status_code=400, detail="Trip cannot be confirmed")
+    
+    ## get the nearest avail driver we found from dispatch service
+    driver = db.query(Driver).filter(Driver.is_available == True).first()
+    if not driver:
+        raise HTTPException(status_code=404, detail="Driver not found")
+    
+    ## set the trip's status = MATCHED
+    trip.status = "MATCHED"
+
+    ## Set the driver as the trip's driver
+    trip.driver_id = driver.id
+
+    ## set driver's status = Unavailable
+    driver.is_available = False
+
+    db.commit()
+    db.refresh(trip)
+
+    return TripResponse.model_validate(trip)
+
+@router.get("/trips/{id}")
+def get_trip(id: int, db: Session = Depends(get_db)):
+    trip = db.query(Trip).filter(Trip.id == id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+    return TripResponse.model_validate(trip)
