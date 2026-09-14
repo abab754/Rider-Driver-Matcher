@@ -3,6 +3,7 @@ from dispatch_service.schemas import CreateDriver, DriverInfo, CreateRider, Ride
 from sqlalchemy.orm import Session                                                                    
 from dispatch_service.database import get_db
 from dispatch_service.models import Driver, Rider, Trip
+from dispatch_service.matching import find_nearest_driver
 
 router = APIRouter()
 
@@ -66,7 +67,7 @@ def confirm_trip(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Trip cannot be confirmed")
     
     ## get the nearest avail driver we found from dispatch service
-    driver = db.query(Driver).filter(Driver.is_available == True).first()
+    driver = find_nearest_driver(trip.pickup_lat, trip.pickup_long, db)
     if not driver:
         raise HTTPException(status_code=404, detail="Driver not found")
     
