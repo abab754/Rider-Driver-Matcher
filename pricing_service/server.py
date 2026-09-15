@@ -1,5 +1,5 @@
-from pricing_pb2_grpc import PricingServiceServicer, add_PricingServiceServicer_to_server
-from pricing_pb2 import PriceResponse
+from pricing_service.pricing_pb2_grpc import PricingServiceServicer, add_PricingServiceServicer_to_server
+from pricing_service.pricing_pb2 import PriceResponse
 import math
 import grpc
 from concurrent import futures

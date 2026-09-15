@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+sqlalchemy
+pymysql
+grpcio
+grpcio-tools

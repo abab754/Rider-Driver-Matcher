@@ -1,3 +1,4 @@
 .venv/
 test.db
 dispatch.db
+.env
