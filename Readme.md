@@ -4,7 +4,7 @@
 REST is good for client-facing communication. It's better to use gRPC when communicating internally between services. gRPC uses Protocol Buffers (binary serialization) and enforces a strict contract via `.proto` files, meaning both services agree on the exact schema at compile time. This results in faster communication and type safety compared to JSON over REST.
 
 ### Components
-Client, Dispatch Service, Pricing Service, and SQLite database (MySQL in production).
+Client, Dispatch Service, Pricing Service, and MySQL database (SQLite fallback for local dev).
 
 ### How they work with each other
 1) Client sends a trip request to the Dispatch Service (REST)
@@ -53,3 +53,12 @@ After the pricing service gets the request, it'll call GetPrice and return a Pri
 
 ### Files modified
 1) dispatch_service/routes.py - modified the request trip endpoint
+
+
+## Sprint 4
+
+### Containerizing with Docker
+Docker solves the "it works on my machine" problem by packaging each service with its dependencies into isolated containers. In this sprint, we containerized the dispatch and pricing services with their own Dockerfiles and added a `docker-compose.yml` to orchestrate all three containers (dispatch, pricing, MySQL). We also swapped SQLite for MySQL and moved credentials to a `.env` file.
+
+### Testing
+Tested that the entire system works by spinning up the containers and sending requests using thuderclient. 
