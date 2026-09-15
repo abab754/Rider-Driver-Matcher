@@ -3,3 +3,4 @@ test.db
 dispatch.db
 .env
 k8s/mysql-secret.yaml
+__pycache__/
