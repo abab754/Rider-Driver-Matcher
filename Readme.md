@@ -62,3 +62,16 @@ Docker solves the "it works on my machine" problem by packaging each service wit
 
 ### Testing
 Tested that the entire system works by spinning up the containers and sending requests using thuderclient. 
+
+## Sprint 5
+
+### Kubernetes
+Docker Compose runs everything on one machine. Kubernetes orchestrates containers and handles scaling, self-healing, and rolling deployments. In this sprint, I deployed all three services to a local K8s cluster (Docker Desktop).
+
+**K8s resources created:**
+- **Deployments** — define the desired state for each service (image, replicas, env vars). K8s ensures the specified number of pods are always running.
+- **Services** — provide stable DNS names for pod-to-pod communication (`mysql:3306`, `pricing:50051`). Pods can die and restart with new IPs, but Services give a fixed endpoint.
+- **ConfigMap** — stores non-sensitive config (DATABASE_URL, PRICING_HOST) for the dispatch service.
+- **Secret** — stores MySQL credentials (base64 encoded).
+
+In production, I'd use a managed K8s service (AWS EKS, Google GKE) and a managed database (AWS RDS) instead of running MySQL in a pod.
