@@ -4,9 +4,9 @@ from sqlalchemy.orm import Session
 from dispatch_service.database import get_db
 from dispatch_service.models import Driver, Rider, Trip
 from dispatch_service.matching import find_nearest_driver
+from dispatch_service.pricing_client import get_price
 
 router = APIRouter()
-
 
 ## Create a Driver
 @router.post("/drivers")
@@ -34,13 +34,15 @@ def create_rider(rider: CreateRider, db: Session = Depends(get_db)):
 
     return RiderInfo.model_validate(db_rider)
 
+## Requests a trip and stores it in the db
 @router.post("/trips/request")
 def request_trip(tripRequest: TripRequest, db: Session = Depends(get_db)):
     ## Query DB for rider with the requests rider_id
     rider = db.query(Rider).filter(Rider.id == tripRequest.rider_id).first()
     if not rider:
         raise HTTPException(status_code=404, detail="Rider not found")
-    
+
+    ## Creates a Trip with status == Requested
     db_trip = Trip(
         rider_id=tripRequest.rider_id, 
         status="REQUESTED", 
@@ -49,6 +51,18 @@ def request_trip(tripRequest: TripRequest, db: Session = Depends(get_db)):
         dropoff_lat=tripRequest.dropoff_lat, 
         dropoff_long=tripRequest.dropoff_long
     )
+
+    ## Calls get_price() from the pricing_client
+    price, distance = get_price(
+        db_trip.pickup_lat, 
+        db_trip.pickup_long,
+        db_trip.dropoff_lat,
+        db_trip.dropoff_long,
+        1.0 
+    )
+
+    ## Updates the trip's price field before committing
+    db_trip.price = price
 
     db.add(db_trip)
     db.commit()

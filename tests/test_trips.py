@@ -12,7 +12,7 @@ class TestRequestTrip:
         data = response.json()
         assert data["status"] == "REQUESTED"
         assert data["driver_id"] is None
-        assert data["price"] is None
+        assert data["price"] is not None
 
     def test_rejects_trip_for_nonexistent_rider(self, client):
         response = client.post("/trips/request", json={

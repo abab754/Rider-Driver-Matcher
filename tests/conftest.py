@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
@@ -36,6 +37,10 @@ def client(db):
     def override_get_db():
         yield db
 
+    def mock_get_price(*args, **kwargs):
+        return 15.50, 10.0
+
     app.dependency_overrides[get_db] = override_get_db
-    yield TestClient(app)
+    with patch("dispatch_service.routes.get_price", mock_get_price):
+        yield TestClient(app)
     app.dependency_overrides.clear()
