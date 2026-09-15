@@ -75,3 +75,18 @@ Docker Compose runs everything on one machine. Kubernetes orchestrates container
 - **Secret** — stores MySQL credentials (base64 encoded).
 
 In production, I'd use a managed K8s service (AWS EKS, Google GKE) and a managed database (AWS RDS) instead of running MySQL in a pod.
+
+## Sprint 6
+
+### Monitoring
+Added observability to the dispatch service using Prometheus and Grafana.
+
+**How it works:**
+1. The dispatch service exposes a `/metrics` endpoint (via `prometheus-fastapi-instrumentator`) with data like request counts, latency histograms, and in-progress requests.
+2. Prometheus scrapes `/metrics` every 15 seconds and stores the time-series data.
+3. Grafana connects to Prometheus as a data source and visualizes the metrics in a dashboard.
+
+**Dashboard panels:**
+- **Request Rate** — `rate(http_requests_total[1m])` — requests per second, broken down by endpoint and status code
+- **P95 Latency** — `histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[1m]))` — 95th percentile response time
+- **Requests In Progress** — `http_requests_in_progress` — concurrent active requests
