@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dispatch-config
+data:
+  DATABASE_URL: mysql+pymysql://dispatch_user:dispatch_pass123@mysql:3306/rider_driver_db
+  PRICING_HOST: pricing:50051

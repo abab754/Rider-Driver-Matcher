@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dispatch-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dispatch
+  template:
+    metadata:
+      labels:
+        app: dispatch
+    spec:
+      containers:
+      - name: dispatch-service
+        image: rider-driver-matcher-dispatch:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: dispatch-config
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: dispatch
+spec:
+  type: NodePort
+  selector:
+    app: dispatch
+  ports:
+    - port: 8000
+      targetPort: 8000
+      nodePort: 30080
