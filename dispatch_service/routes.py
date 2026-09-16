@@ -52,13 +52,17 @@ def request_trip(tripRequest: TripRequest, db: Session = Depends(get_db)):
         dropoff_long=tripRequest.dropoff_long
     )
 
+    available_drivers = db.query(Driver).filter(Driver.is_available == True).count()                                       
+    active_trips = db.query(Trip).filter(Trip.status.in_(["REQUESTED", "MATCHED"])).count()                           
+    surge = max(1.0, active_trips / max(available_drivers, 1)) 
+
     ## Calls get_price() from the pricing_client
     price, distance = get_price(
         db_trip.pickup_lat, 
         db_trip.pickup_long,
         db_trip.dropoff_lat,
         db_trip.dropoff_long,
-        1.0 
+        surge 
     )
 
     ## Updates the trip's price field before committing
@@ -104,5 +108,50 @@ def get_trip(id: int, db: Session = Depends(get_db)):
     trip = db.query(Trip).filter(Trip.id == id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
+
+    return TripResponse.model_validate(trip)
+
+@router.post("/trips/{id}/complete")
+def complete_trip(id: int, db: Session = Depends(get_db)):
+    ## Get trip that we need to update
+    trip = db.query(Trip).filter(Trip.id == id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+    if trip.status != "MATCHED":
+        raise HTTPException(status_code=400, detail="Trip cannot be completed")
+
+    trip.status = "COMPLETED"
+
+    driver = db.query(Driver).filter(Driver.id == trip.driver_id).first()
+    if not driver:
+        raise HTTPException(status_code=404, detail="Driver not found")
+    driver.is_available = True
+
+    db.commit()
+    db.refresh(trip)
+
+    return TripResponse.model_validate(trip)
+
+@router.post("/trips/{id}/cancel")
+def cancel_trip(id: int, db: Session = Depends(get_db)):
+    trip = db.query(Trip).filter(Trip.id == id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+    if trip.status not in ["REQUESTED", "MATCHED"]:
+        raise HTTPException(status_code=400, detail="Trip cannot be cancelled")
+
+    # If a driver was matched, free them up
+    if trip.driver_id:
+        driver = db.query(Driver).filter(Driver.id == trip.driver_id).first()
+        if not driver:
+            raise HTTPException(status_code=404, detail="Driver not found")
+        driver.is_available = True
+
+    trip.status = "CANCELLED"
+
+    db.commit()
+    db.refresh(trip)
 
     return TripResponse.model_validate(trip)
