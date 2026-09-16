@@ -29,6 +29,8 @@ Trip states: `REQUESTED → MATCHED → IN_PROGRESS → COMPLETED` (or `CANCELLE
 - `POST /trips/request` — request a trip, returns price estimate
 - `POST /trips/{id}/confirm` — confirm trip, matches nearest available driver
 - `GET /trips/{id}` — get trip status
+- `POST /trips/{id}/complete` — complete a trip, free the driver
+- `POST /trips/{id}/cancel` — cancel a trip
 - `GET /health` — health check
 
 
@@ -90,3 +92,26 @@ Added observability to the dispatch service using Prometheus and Grafana.
 - **Request Rate** — `rate(http_requests_total[1m])` — requests per second, broken down by endpoint and status code
 - **P95 Latency** — `histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[1m]))` — 95th percentile response time
 - **Requests In Progress** — `http_requests_in_progress` — concurrent active requests
+
+## Sprint 7
+
+### Load Testing & Chaos Engineering
+Proved the system handles load and recovers from failure.
+
+**Load Testing with Locust:**
+- Simulated 50 concurrent users, each creating a driver/rider and repeatedly requesting, confirming, and completing trips
+- The full trip lifecycle (request → confirm → complete) runs in a loop, with drivers being freed up after each completed trip
+- Observed ~23.8 req/s throughput with p95 latency under 500ms via Grafana
+
+**Surge Pricing:**
+- Implemented dynamic surge multiplier based on demand: `surge = active_trips / available_drivers`
+- When demand exceeds supply, the pricing service returns higher prices — same concept as Uber's surge pricing
+
+**Chaos Test — K8s Self-Healing:**
+- While load was running, killed the dispatch pod with `kubectl delete pod`
+- K8s detected the missing pod and automatically spun up a replacement within ~52 seconds
+- Grafana dashboard captured the outage and recovery, proving the system is resilient to pod failures
+
+**Endpoints added:**
+- `POST /trips/{id}/complete` — completes a trip and frees the driver
+- `POST /trips/{id}/cancel` — cancels a trip from REQUESTED or MATCHED state, frees driver if matched
