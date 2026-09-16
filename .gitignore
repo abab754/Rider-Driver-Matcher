@@ -4,3 +4,4 @@ dispatch.db
 .env
 k8s/mysql-secret.yaml
 __pycache__/
+dispatch_service/__pycache__/
