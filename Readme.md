@@ -1,4 +1,12 @@
+# Rider-Driver Matching Marketplace
+
+A distributed ride-matching system built with microservice architecture — featuring a FastAPI dispatch service, a gRPC pricing service, MySQL persistence, Docker/Kubernetes deployment, and Prometheus/Grafana observability. Load tested with Locust and chaos tested by killing pods mid-traffic to prove self-healing.
+
+**Tech Stack:** Python, FastAPI, gRPC, MySQL, Docker, Kubernetes, Prometheus, Grafana, Locust
+
 ## System Architecture
+
+![architecture](architecture.png)
 
 ### Why gRPC over HTTP/REST for communication between Dispatch Service and Pricing Service
 REST is good for client-facing communication. It's better to use gRPC when communicating internally between services. gRPC uses Protocol Buffers (binary serialization) and enforces a strict contract via `.proto` files, meaning both services agree on the exact schema at compile time. This results in faster communication and type safety compared to JSON over REST.
@@ -92,6 +100,8 @@ Added observability to the dispatch service using Prometheus and Grafana.
 - **Request Rate** — `rate(http_requests_total[1m])` — requests per second, broken down by endpoint and status code
 - **P95 Latency** — `histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[1m]))` — 95th percentile response time
 - **Requests In Progress** — `http_requests_in_progress` — concurrent active requests
+
+![monitoring](monitoring.png)
 
 ## Sprint 7
 
